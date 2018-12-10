@@ -1,0 +1,72 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: zookeeper
+    restart: always
+    hostname: zoodeeper
+    ports:
+      - 2181:2181
+    networks:
+      - kafka
+
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    networks:
+      - kafka
+    hostname: kafka
+    environment:
+      - KAFKA_ADVERTISED_HOST_NAME=kafka
+      - KAFKA_ADVERTISED_PORT=9092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zookeeper
+
+  pg_master:
+    image: debezium/postgres:10.0-alpine
+    networks:
+      - kafka
+    hostname: pg_master
+
+  pg_slave:
+    image: debezium/postgres:10.0-alpine
+    networks:
+      - kafka
+    depends_on:
+      - pg_master
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=wfn@adp.com
+      - PGADMIN_DEFAULT_PASSWORD=postgres
+    ports:
+      - "6680:80"
+    networks:
+      - kafka
+    hostname: pgadmin
+
+  connect:
+    image: debezium/connect
+    ports:
+      - "8083:8083"
+    environment:
+      - GROUP_ID=1
+      - CONFIG_STORAGE_TOPIC=my-connect-configs
+      - OFFSET_STORAGE_TOPIC=my-connect-offsets
+      - BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - kafka
+    hostname: connect
+
+#volumes:
+#  pg_data:
+
+networks:
+  kafka:
+    external:
+      name: kafka
