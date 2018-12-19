@@ -1,0 +1,3 @@
+FROM confluentinc/cp-kafka-connect:5.0.0
+
+ADD debezium-connector-postgres-0.8.3.Final-plugin.tar.gz /usr/share/confluent-hub-components
